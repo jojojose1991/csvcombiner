@@ -1,0 +1,84 @@
+#!/bin/bash
+
+## This utility concatenates multiple CSV files into a single file.
+##
+## The number of header rows in the CSV file can be optionally input (default=1)
+## which will make sure header rows are copied into the output file
+##
+## Author   : Jojo Jose (jojjose)
+## Date     : 22/02/2017
+## Version  : 1.0
+##
+
+help_menu () {
+cat<<EOF
+Usage: csvcombiner.sh [-h] [-x HEADER_ROWS] -o OUTPUT_FILE GLOB 
+Concatenates multiple CSV files into a single file, with header row optionally specified
+Options:
+    h - Print this help menu and exit
+    x - Total number of header rows to be copied. Default is 1.
+    o - Output file for concatenated csv files
+    
+GLOB can be any file pattern as accepted by the ls command    
+EOF
+}
+
+while getopts ":hx:o:" opt; do
+    case $opt in
+        h)
+            help_menu
+            exit 0
+            ;;
+        x)
+            HEADER_ROWS=$OPTARG
+            ;;
+        o)
+            OUTPUT_FILE=$OPTARG
+            ;;
+        \?)
+            echo "Invalid option: -$OPTARG" >&2
+            exit 1
+            ;;
+        :)
+            echo "Option -$OPTARG requires an argument" >&2
+            exit 1
+            ;;
+    esac
+done
+shift "$((OPTIND - 1))"
+
+FLAG_HEADER_COPIED=0
+
+# Existence of value for mandatory field OUTPUT_FILE
+if [ -z "$OUTPUT_FILE" ]
+then
+    echo "Error: Missing arguments" >&2
+    help_menu
+    exit 1
+fi
+
+# Existence of value for at least one file to combine
+if [ -z "$1" ]
+then
+    echo "Error: At least one file needed to be input for concatenation" >&2
+    help_menu
+    exit 1
+fi
+
+# Existence of value for OUTPUT_FILE
+if [ -z "$HEADER_ROWS" ]
+then
+    HEADER_ROWS=1
+fi
+
+
+for smallfile in "$@"
+do
+    if [ $FLAG_HEADER_COPIED -eq 0 ]
+    then
+        cat $smallfile > $OUTPUT_FILE
+        FLAG_HEADER_COPIED=1
+    else
+        tail -n+$(($HEADER_ROWS+1)) $smallfile >> $OUTPUT_FILE
+    fi
+done
